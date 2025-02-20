@@ -1,9 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>To-Do List</title>
+    <link rel="icon" type="image/png" href="{% static 'images/icon.png' %}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
@@ -17,7 +19,7 @@
         }
 
         .card {
-            max-width: 500px;
+            max-width: 550px;
             width: 100%;
             border-radius: 12px;
             overflow: hidden;
@@ -27,6 +29,7 @@
             background: #007bff;
             color: white;
             font-weight: bold;
+            text-align: center;
         }
 
         .task-title {
@@ -43,15 +46,78 @@
         .priority-medium { color: orange; font-weight: bold; }
         .priority-low { color: green; font-weight: bold; }
 
+        {% comment %} .task-completed {
+            text-decoration: line-through;
+            color: gray;
+        } {% endcomment %}
+        .task-item {
+            display: flex !important;
+        }
+        .hidden-task {
+            display: none !important;
+            visibility: hidden !important;
+        }
+        #task-list {
+            max-height: 300px;  /* Adjust height as needed */
+            overflow-y: auto;  /* Enables vertical scrolling */
+            overflow-x: hidden; /* Prevents horizontal scrolling */
+            padding-right: 5px; /* Prevents content from hiding scrollbar */
+        }
+        
+        /* Custom scrollbar (optional) */
+        #task-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #task-list::-webkit-scrollbar-thumb {
+            background: #007bff;
+            border-radius: 10px;
+        }
+        
+        #task-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }            
+        .task-title {
+            word-wrap: break-word; /* Allows long words to break and wrap */
+            white-space: normal; /* Ensures text wraps within its container */
+            overflow-wrap: break-word; /* Prevents overflow */
+            max-width: 250px; /* Adjust width as needed */
+            display: block; /* Ensures it behaves like a paragraph */
+        }
+        
+        /* Ensure the list items stay in a row */
+        .task-item {
+            display: flex !important;
+            justify-content: space-between; /* Keeps buttons aligned */
+            align-items: center;
+            flex-wrap: wrap; /* Prevents breaking layout */
+        }
+        
+        /* Prevents excessive height */
+        .list-group-item {
+            max-width: 100%;
+            overflow: hidden;
+            padding: 10px;
+        }          
     </style>
 </head>
 <body>
 
-    <div class="card shadow-lg">
-        <div class="card-header text-center">
+    <div class="card shadow-lg p-4">
+        <div class="card-header">
             <h2>📝 My To-Do List</h2>
         </div>
         <div class="card-body">
+            
+            <!-- Task Filter -->
+            <div class="d-flex justify-content-between mb-3">
+                <h5>📋 Filter Tasks:</h5>
+                <select id="task-filter" class="form-select w-auto">
+                    <option value="all">All</option>
+                    <option value="completed">Pending</option>
+                    <option value="pending">Completed</option>
+                </select>
+            </div>
 
             <!-- Add Task Form -->
             <form action="{% url 'add_task' %}" method="POST" class="d-flex mb-3">
@@ -67,9 +133,10 @@
             </form>
 
             <!-- Task List -->
-            <ul class="list-group">
+            <ul class="list-group" id="task-list">
                 {% for task in tasks %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                <li class="list-group-item d-flex justify-content-between align-items-center task-item"
+                data-status="{% if task.completed %}completed{% else %}pending{% endif %}">                             
                         <div>
                             <span class="task-title {% if task.completed %}task-completed{% endif %}">
                                 {{ task.title }}
@@ -95,6 +162,8 @@
                             </form>
                         </div>
                     </li>
+                {% empty %}
+                    <li class="list-group-item text-center">No tasks found.</li>
                 {% endfor %}
             </ul>
         </div>
@@ -103,6 +172,61 @@
             <a href="{% url 'logout' %}" class="btn btn-outline-danger">🚪 Logout</a>
         </div>
     </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const filterDropdown = document.getElementById("task-filter");
+            const tasks = document.querySelectorAll(".task-item");
+            const taskList = document.getElementById("task-list");
+        
+            // Create a "No tasks" message
+            const noTasksMessage = document.createElement("li");
+            noTasksMessage.className = "list-group-item text-center fw-bold text-muted";
+            noTasksMessage.id = "no-tasks-message";
+            noTasksMessage.style.display = "none"; // Initially hidden
+            taskList.appendChild(noTasksMessage);
+        
+            filterDropdown.addEventListener("change", function () {
+                const selectedFilter = filterDropdown.value.trim().toLowerCase();
+                let hasVisibleTasks = false; // Track if any task is visible
+        
+                console.log(`🔍 Filtering for: ${selectedFilter}`);
+        
+                tasks.forEach(task => {
+                    const taskStatus = task.getAttribute("data-status").trim().toLowerCase();
+        
+                    console.log(`📝 Task: "${task.querySelector(".task-title")?.textContent.trim()}", Status: ${taskStatus}`);
+        
+                    if (selectedFilter === "all") {
+                        task.classList.remove("hidden-task");  // ✅ Show all tasks
+                        hasVisibleTasks = true;
+                    } else if (
+                        (selectedFilter === "pending" && taskStatus === "pending") || 
+                        (selectedFilter === "completed" && taskStatus === "completed")
+                    ) {
+                        task.classList.remove("hidden-task");  // ✅ Show matching tasks
+                        hasVisibleTasks = true;
+                    } else {
+                        task.classList.add("hidden-task");  // ❌ Hide non-matching tasks
+                    }
+                });
+        
+                // Show message if no tasks match the filter
+                if (!hasVisibleTasks && selectedFilter !== "all") {
+                    noTasksMessage.textContent = selectedFilter === "pending" 
+                        ? "✅ No Completed Tasks!" 
+                        : "🎯 No Pending Tasks!";
+                    noTasksMessage.style.display = "block";
+                } else {
+                    noTasksMessage.style.display = "none"; // Hide if there are tasks or "All" is selected
+                }
+            });
+        
+            // ✅ Apply filter on page load
+            filterDropdown.dispatchEvent(new Event("change"));
+        });
+          
+    </script>
 
 </body>
 </html>

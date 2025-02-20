@@ -19,16 +19,37 @@ def signup_view(request):
         form = UserCreationForm()
     return render(request, 'todo/signup.html', {'form': form})
 
+# def login_view(request):
+#     if request.method == 'POST':
+#         form = AuthenticationForm(request, data=request.POST)
+#         if form.is_valid():
+#             user = form.get_user()
+#             login(request, user)
+#             return redirect('task_list')  
+#     else:
+#         form = AuthenticationForm()
+#     return render(request, 'todo/login.html', {'form': form})
+
 def login_view(request):
-    if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+        remember_me = request.POST.get("remember-me")  # Get checkbox value
+
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
             login(request, user)
-            return redirect('task_list')  
-    else:
-        form = AuthenticationForm()
-    return render(request, 'todo/login.html', {'form': form})
+
+            # If "Remember Me" is NOT checked, expire session when browser closes
+            if not remember_me:
+                request.session.set_expiry(0)  # Session expires on browser close
+
+            return redirect("task_list")  # Redirect to user dashboard or home
+        else:
+            error = "Invalid username or password!"
+            return render(request, "login", {"error": error})
+
+    return render(request, "todo/login.html")
 
 def logout_view(request):
     logout(request)
