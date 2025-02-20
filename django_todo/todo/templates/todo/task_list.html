@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #f6d365, #fda085);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+
+        .card {
+            max-width: 500px;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+
+        .task-title {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .due-date {
+            font-size: 12px;
+            color: #dc3545;
+        }
+
+        .priority-high { color: red; font-weight: bold; }
+        .priority-medium { color: orange; font-weight: bold; }
+        .priority-low { color: green; font-weight: bold; }
+
+    </style>
+</head>
+<body>
+
+    <div class="card shadow-lg">
+        <div class="card-header text-center">
+            <h2>📝 My To-Do List</h2>
+        </div>
+        <div class="card-body">
+
+            <!-- Add Task Form -->
+            <form action="{% url 'add_task' %}" method="POST" class="d-flex mb-3">
+                {% csrf_token %}
+                <input type="text" name="title" class="form-control me-2" placeholder="New Task" required>
+                <input type="date" name="due_date" class="form-control me-2" required>
+                <select name="priority" class="form-control me-2" required>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                </select>
+                <button type="submit" class="btn btn-success">➕ Add</button>
+            </form>
+
+            <!-- Task List -->
+            <ul class="list-group">
+                {% for task in tasks %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="task-title {% if task.completed %}task-completed{% endif %}">
+                                {{ task.title }}
+                            </span>
+                            <br>
+                            <small class="due-date">Due: {{ task.due_date|date:"M d, Y" }}</small>
+                            <br>
+                            <small class="priority-{{ task.priority|lower }}">Priority: {{ task.priority }}</small>
+                        </div>
+                        <div>
+                            <!-- Mark Task as Completed -->
+                            <form action="{% url 'update_task' task.id %}" method="POST" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm {% if task.completed %}btn-secondary{% else %}btn-warning{% endif %}">
+                                    {% if task.completed %}⌛ Pending{% else %}✅ Complete{% endif %}
+                                </button>
+                            </form>
+
+                            <!-- Delete Task -->
+                            <form action="{% url 'delete_task' task.id %}" method="POST" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger">🗑 Delete</button>
+                            </form>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="card-footer text-center">
+            <a href="{% url 'logout' %}" class="btn btn-outline-danger">🚪 Logout</a>
+        </div>
+    </div>
+
+</body>
+</html>
